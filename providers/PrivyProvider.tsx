@@ -57,7 +57,6 @@ export default function PrivyProviders({ children }: { children: React.ReactNode
 				externalWallets: {
 					solana: { connectors: toSolanaWalletConnectors() },
 				},
-				supportedChains: [],
 			}}
 		>
 			{children}
