@@ -3,7 +3,7 @@ import { useLogin, usePrivy, WalletWithMetadata } from "@privy-io/react-auth";
 import { useWallets, useSignMessage } from '@privy-io/react-auth/solana';
 import bs58 from 'bs58';
 import { useEffect, useState } from 'react';
-import { OKXUniversalProvider } from "@okxconnect/universal-provider";
+import { useOKXSolana } from '@/hooks/useOKXSolana';
 
 // 声明 OKX 钱包类型
 declare global {
@@ -19,86 +19,8 @@ export default function Home() {
   const { ready, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const { signMessage } = useSignMessage();
-  const [okxProvider, setOkxProvider] = useState<any>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const { okxProvider, isOKXEnvironment, isForceReady, hasSolanaWallet } = useOKXSolana();
 
-  // 初始化 OKX Universal Provider 和等待所有钱包准备
-  useEffect(() => {
-    const initOKXAndWallets = async () => {
-      if (typeof window !== 'undefined') {
-        // 检查是否在 OKX 钱包环境
-        const isOKX = /OKApp/i.test(navigator.userAgent) || window.okxwallet;
-        
-        if (isOKX) {
-          console.log('Detected OKX wallet environment');
-          
-          try {
-            // 初始化 OKX Universal Provider
-            const okxUniversalProvider = await OKXUniversalProvider.init({
-              dappMetaData: {
-                name: "Solana Wallet App",
-                icon: "https://newgame.mypinata.cloud/ipfs/bafkreie4d7r3rzbdlr4chhwsfkhdcu5mgqrrae2h7wg2ya44vmdyj3mthu"
-              },
-            });
-            
-            setOkxProvider(okxUniversalProvider);
-            console.log('OKX Universal Provider initialized');
-            
-            // 等待 OKX 钱包完全加载
-            const waitForOKXWallet = () => {
-              return new Promise((resolve) => {
-                if (window.okxwallet?.solana) {
-                  resolve(window.okxwallet.solana);
-                  return;
-                }
-                
-                let attempts = 0;
-                const interval = setInterval(() => {
-                  attempts++;
-                  if (window.okxwallet?.solana || attempts > 100) { // 增加等待时间
-                    clearInterval(interval);
-                    resolve(window.okxwallet?.solana);
-                  }
-                }, 100);
-              });
-            };
-            
-            const solanaWallet = await waitForOKXWallet();
-            if (solanaWallet) {
-              console.log('OKX Solana wallet ready');
-            } else {
-              console.warn('OKX Solana wallet not found, user may need to switch manually');
-            }
-            
-          } catch (error) {
-            console.error('Error initializing OKX Universal Provider:', error);
-          }
-        }
-        
-        // 等待 Privy 和钱包完全准备
-        const waitForPrivyAndWallets = () => {
-          return new Promise((resolve) => {
-            let attempts = 0;
-            const interval = setInterval(() => {
-              attempts++;
-              console.log(`Waiting for Privy and Wallets... attempt ${attempts}, ready: ${ready}, walletsReady: ${walletsReady}`);
-              
-              if ((ready && walletsReady) || attempts > 100) {
-                clearInterval(interval);
-                setIsInitializing(false);
-                resolve(true);
-              }
-            }, 200);
-          });
-        };
-        
-        await waitForPrivyAndWallets();
-        console.log('All systems ready');
-      }
-    };
-    
-    initOKXAndWallets();
-  }, [ready, walletsReady]); // 依赖 ready 和 walletsReady 状态
   const { login: toLogin } = useLogin({
     onComplete: async ({ user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount }) => {
       console.log("✅ Login successful:", { user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount });
@@ -116,16 +38,17 @@ export default function Home() {
   const desiredWallet = wallets.find((wallet) => wallet.address === walletAddress);
   console.log(desiredWallet, '====desiredWallet=')
   
-  if (!ready || !walletsReady || isInitializing) {
+  if (!ready || !walletsReady || (isOKXEnvironment && !isForceReady)) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black gap-4">
         <div>Loading...</div>
         <div className="text-sm text-gray-600">
-          Ready: {ready ? '✅' : '⏳'} | Wallets: {walletsReady ? '✅' : '⏳'} | Initializing: {isInitializing ? '⏳' : '✅'}
+          Ready: {ready ? '✅' : '⏳'} | Wallets: {walletsReady ? '✅' : '⏳'} | OKX Ready: {isForceReady ? '✅' : '⏳'}
         </div>
-        {typeof window !== 'undefined' && (/OKApp/i.test(navigator.userAgent) || window.okxwallet) && (
+        {isOKXEnvironment && (
           <div className="text-xs text-blue-600">
-            🔄 正在初始化 OKX Solana 钱包...
+            🔄 正在强制初始化 OKX Solana 钱包...
+            {hasSolanaWallet && <div className="text-green-600">✅ 检测到 Solana 钱包</div>}
           </div>
         )}
       </div>
@@ -165,7 +88,7 @@ export default function Home() {
       <div>Privy is ready!</div>
       
       {/* OKX 用户提示 */}
-      {typeof window !== 'undefined' && (/OKApp/i.test(navigator.userAgent) || window.okxwallet) && !desiredWallet && (
+      {isOKXEnvironment && !desiredWallet && (
         <div className="text-center p-4 bg-yellow-100 rounded-lg text-yellow-800 max-w-md">
           <p className="text-sm">
             🚀 在 OKX 钱包中使用此应用，请确保已切换到 <strong>Solana</strong> 网络
@@ -176,6 +99,11 @@ export default function Home() {
           {okxProvider && (
             <p className="text-xs mt-2 text-green-600">
               ✅ OKX Universal Provider 已初始化
+            </p>
+          )}
+          {!hasSolanaWallet && (
+            <p className="text-xs mt-2 text-red-600">
+              ⚠️ 未检测到 Solana 钱包，如果问题持续请尝试刷新页面
             </p>
           )}
         </div>
