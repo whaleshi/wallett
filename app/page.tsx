@@ -2,12 +2,37 @@
 import { useLogin, usePrivy, WalletWithMetadata } from "@privy-io/react-auth";
 import { useWallets, useSignMessage } from '@privy-io/react-auth/solana';
 import bs58 from 'bs58';
+import { useEffect } from 'react';
 
+// 声明 OKX 钱包类型
+declare global {
+  interface Window {
+    okxwallet?: {
+      solana?: any;
+      ethereum?: any;
+    };
+  }
+}
 
 export default function Home() {
   const { ready, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const { signMessage } = useSignMessage();
+
+  // 检测 OKX 钱包并尝试切换到 Solana
+  useEffect(() => {
+    const detectOKXWallet = async () => {
+      if (typeof window !== 'undefined' && window.okxwallet) {
+        console.log('OKX wallet detected');
+        if (window.okxwallet.solana) {
+          console.log('OKX Solana wallet available');
+          // 可以在这里添加自动连接逻辑
+        }
+      }
+    };
+    
+    detectOKXWallet();
+  }, []);
   const { login: toLogin } = useLogin({
     onComplete: async ({ user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount }) => {
       console.log("✅ Login successful:", { user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount });
