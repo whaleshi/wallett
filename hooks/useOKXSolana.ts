@@ -7,6 +7,7 @@ export function useOKXSolana() {
   const [okxProvider, setOkxProvider] = useState<any>(null);
   const [isOKXEnvironment, setIsOKXEnvironment] = useState(false);
   const [isForceReady, setIsForceReady] = useState(false);
+  const [hasRefreshed, setHasRefreshed] = useState(false);
 
   useEffect(() => {
     const initOKX = async () => {
@@ -17,11 +18,39 @@ export function useOKXSolana() {
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
       
+      // 检查是否已经刷新过
+      const refreshKey = 'okx_ios_refreshed';
+      const hasAlreadyRefreshed = localStorage.getItem(refreshKey) === 'true';
+      setHasRefreshed(hasAlreadyRefreshed);
+      
       setIsOKXEnvironment(isOKX);
 
       if (isOKX) {
         console.log('🔍 Detected OKX wallet environment');
         console.log('📱 Platform:', isIOS ? 'iOS' : isAndroid ? 'Android' : 'Unknown');
+        console.log('🔄 Has refreshed:', hasAlreadyRefreshed);
+        
+        // 如果是 iOS 且没有刷新过，先快速检测一次
+        if (isIOS && !hasAlreadyRefreshed) {
+          console.log('🍎 iOS 首次加载，快速检测 Solana 钱包...');
+          
+          // 快速检测
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (!(window as any).okxwallet?.solana) {
+            console.log('🔄 iOS 未检测到 Solana 钱包，执行无感刷新...');
+            localStorage.setItem(refreshKey, 'true');
+            localStorage.setItem(`${refreshKey}_time`, Date.now().toString());
+            // 清除其他可能的缓存
+            localStorage.removeItem('walletAddress');
+            window.location.reload();
+            return;
+          } else {
+            console.log('✅ iOS 首次检测到 Solana 钱包');
+            // 如果检测到了，清除刷新标记
+            localStorage.removeItem(refreshKey);
+          }
+        }
         
         try {
           // iOS 需要更长的延迟
@@ -41,9 +70,9 @@ export function useOKXSolana() {
 
           // iOS 和 Android 使用不同的重试策略
           let attempts = 0;
-          const maxAttempts = isIOS ? 30 : 20; // iOS 更多尝试次数
+          const maxAttempts = isIOS ? (hasAlreadyRefreshed ? 15 : 30) : 20; // iOS 刷新后减少重试
           const retryDelay = isIOS ? 800 : 500; // iOS 更长间隔
-          const refreshAttempt = isIOS ? 15 : 10; // iOS 更晚刷新
+          const refreshAttempt = isIOS ? (hasAlreadyRefreshed ? 999 : 15) : 10; // iOS 刷新后不再刷新
           
           const forceCheck = async () => {
             while (attempts < maxAttempts) {
@@ -93,6 +122,22 @@ export function useOKXSolana() {
     };
 
     initOKX();
+    
+    // 清理过期的刷新标记 (5分钟后)
+    const cleanupRefreshFlag = () => {
+      const refreshKey = 'okx_ios_refreshed';
+      const refreshTime = localStorage.getItem(`${refreshKey}_time`);
+      if (refreshTime) {
+        const now = Date.now();
+        const elapsed = now - parseInt(refreshTime);
+        if (elapsed > 5 * 60 * 1000) { // 5分钟
+          localStorage.removeItem(refreshKey);
+          localStorage.removeItem(`${refreshKey}_time`);
+        }
+      }
+    };
+    
+    cleanupRefreshFlag();
   }, []);
 
   return {
