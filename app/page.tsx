@@ -28,7 +28,7 @@ export default function Home() {
   console.log(walletAddress, '=====')
   const desiredWallet = wallets.find((wallet) => wallet.address === walletAddress);
   console.log(desiredWallet, '====desiredWallet=')
-  
+
   if (!ready || !walletsReady || (isOKXEnvironment && !isForceReady)) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black gap-4">
@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black gap-4">
       <div>Privy is ready!</div>
-      
+
       {/* OKX 用户提示 */}
       {isOKXEnvironment && !desiredWallet && (
         <div className="text-center p-4 bg-yellow-100 rounded-lg text-yellow-800 max-w-md">
@@ -107,13 +107,13 @@ export default function Home() {
           )}
         </div>
       )}
-      
+      <div onClick={() => window.location.reload()}>刷新</div>
       {
         desiredWallet ? <div onClick={() => { logout(); if (typeof window !== 'undefined') localStorage.removeItem("walletAddress"); }}>logout</div> : <div onClick={toLogin}>login</div>
       }
       <div>{desiredWallet ? `Logged in with ${desiredWallet?.address}` : "No wallet connected"}</div>
       {desiredWallet && (
-        <button 
+        <button
           onClick={handleSignMessage}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
