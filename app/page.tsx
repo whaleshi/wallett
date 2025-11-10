@@ -6,7 +6,7 @@ import bs58 from 'bs58';
 
 export default function Home() {
   const { ready, logout } = usePrivy();
-  const { wallets } = useWallets();
+  const { wallets, ready: walletsReady } = useWallets();
   const { signMessage } = useSignMessage();
   const { login: toLogin } = useLogin({
     onComplete: async ({ user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount }) => {
@@ -24,7 +24,8 @@ export default function Home() {
   console.log(walletAddress, '=====')
   const desiredWallet = wallets.find((wallet) => wallet.address === walletAddress);
   console.log(desiredWallet, '====desiredWallet=')
-  if (!ready) {
+  
+  if (!ready || !walletsReady) {
     return <div className="flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">Loading...</div>;
   }
 
