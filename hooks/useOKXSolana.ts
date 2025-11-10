@@ -2,14 +2,6 @@
 import { useEffect, useState } from 'react';
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
-declare global {
-  interface Window {
-    okxwallet?: {
-      solana?: any;
-      ethereum?: any;
-    };
-  }
-}
 
 export function useOKXSolana() {
   const [okxProvider, setOkxProvider] = useState<any>(null);
@@ -21,7 +13,7 @@ export function useOKXSolana() {
       if (typeof window === 'undefined') return;
 
       // 检测 OKX 环境
-      const isOKX = /OKApp/i.test(navigator.userAgent) || window.okxwallet;
+      const isOKX = /OKApp/i.test(navigator.userAgent) || (window as any).okxwallet;
       setIsOKXEnvironment(isOKX);
 
       if (isOKX) {
@@ -51,14 +43,14 @@ export function useOKXSolana() {
               attempts++;
               console.log(`🔄 Attempt ${attempts}/${maxAttempts} - Checking OKX Solana wallet`);
               
-              if (window.okxwallet?.solana) {
+              if ((window as any).okxwallet?.solana) {
                 console.log('✅ OKX Solana wallet found!');
                 setIsForceReady(true);
                 return;
               }
               
               // 尝试刷新页面来强制重新检测
-              if (attempts === 10 && !window.okxwallet?.solana) {
+              if (attempts === 10 && !(window as any).okxwallet?.solana) {
                 console.warn('⚠️ OKX Solana wallet not found after 10 attempts, trying page refresh...');
                 window.location.reload();
                 return;
@@ -89,6 +81,6 @@ export function useOKXSolana() {
     okxProvider,
     isOKXEnvironment,
     isForceReady,
-    hasSolanaWallet: isOKXEnvironment && window?.okxwallet?.solana
+    hasSolanaWallet: isOKXEnvironment && (window as any)?.okxwallet?.solana
   };
 }
