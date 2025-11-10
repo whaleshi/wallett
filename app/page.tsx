@@ -19,19 +19,51 @@ export default function Home() {
   const { wallets, ready: walletsReady } = useWallets();
   const { signMessage } = useSignMessage();
 
-  // 检测 OKX 钱包并尝试切换到 Solana
+  // 检测 OKX 钱包并强制切换到 Solana
   useEffect(() => {
-    const detectOKXWallet = async () => {
-      if (typeof window !== 'undefined' && window.okxwallet) {
-        console.log('OKX wallet detected');
-        if (window.okxwallet.solana) {
-          console.log('OKX Solana wallet available');
-          // 可以在这里添加自动连接逻辑
+    const forceOKXSolana = async () => {
+      if (typeof window !== 'undefined') {
+        // 检查是否在 OKX 钱包环境
+        const isOKX = /OKApp/i.test(navigator.userAgent) || window.okxwallet;
+        
+        if (isOKX) {
+          console.log('Detected OKX wallet environment');
+          
+          // 等待 OKX 钱包完全加载
+          const waitForOKXWallet = () => {
+            return new Promise((resolve) => {
+              if (window.okxwallet?.solana) {
+                resolve(window.okxwallet.solana);
+                return;
+              }
+              
+              let attempts = 0;
+              const interval = setInterval(() => {
+                attempts++;
+                if (window.okxwallet?.solana || attempts > 50) {
+                  clearInterval(interval);
+                  resolve(window.okxwallet?.solana);
+                }
+              }, 100);
+            });
+          };
+          
+          try {
+            const solanaWallet = await waitForOKXWallet();
+            if (solanaWallet) {
+              console.log('OKX Solana wallet ready');
+              // 这里可以添加自动连接逻辑
+            } else {
+              console.warn('OKX Solana wallet not found, user may need to switch manually');
+            }
+          } catch (error) {
+            console.error('Error setting up OKX Solana wallet:', error);
+          }
         }
       }
     };
     
-    detectOKXWallet();
+    forceOKXSolana();
   }, []);
   const { login: toLogin } = useLogin({
     onComplete: async ({ user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount }) => {
@@ -85,6 +117,19 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black gap-4">
       <div>Privy is ready!</div>
+      
+      {/* OKX 用户提示 */}
+      {typeof window !== 'undefined' && (/OKApp/i.test(navigator.userAgent) || window.okxwallet) && !desiredWallet && (
+        <div className="text-center p-4 bg-yellow-100 rounded-lg text-yellow-800 max-w-md">
+          <p className="text-sm">
+            🚀 在 OKX 钱包中使用此应用，请确保已切换到 <strong>Solana</strong> 网络
+          </p>
+          <p className="text-xs mt-2">
+            如果默认连接了以太坊，请在 OKX 钱包设置中切换到 Solana 网络
+          </p>
+        </div>
+      )}
+      
       {
         desiredWallet ? <div onClick={() => { logout(); if (typeof window !== 'undefined') localStorage.removeItem("walletAddress"); }}>logout</div> : <div onClick={toLogin}>login</div>
       }
