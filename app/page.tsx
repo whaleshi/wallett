@@ -2,7 +2,8 @@
 import { useLogin, usePrivy, WalletWithMetadata } from "@privy-io/react-auth";
 import { useWallets, useSignMessage } from '@privy-io/react-auth/solana';
 import bs58 from 'bs58';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 
 // 声明 OKX 钱包类型
 declare global {
@@ -18,10 +19,11 @@ export default function Home() {
   const { ready, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const { signMessage } = useSignMessage();
+  const [okxProvider, setOkxProvider] = useState<any>(null);
 
-  // 检测 OKX 钱包并强制切换到 Solana
+  // 初始化 OKX Universal Provider
   useEffect(() => {
-    const forceOKXSolana = async () => {
+    const initOKXProvider = async () => {
       if (typeof window !== 'undefined') {
         // 检查是否在 OKX 钱包环境
         const isOKX = /OKApp/i.test(navigator.userAgent) || window.okxwallet;
@@ -29,41 +31,52 @@ export default function Home() {
         if (isOKX) {
           console.log('Detected OKX wallet environment');
           
-          // 等待 OKX 钱包完全加载
-          const waitForOKXWallet = () => {
-            return new Promise((resolve) => {
-              if (window.okxwallet?.solana) {
-                resolve(window.okxwallet.solana);
-                return;
-              }
-              
-              let attempts = 0;
-              const interval = setInterval(() => {
-                attempts++;
-                if (window.okxwallet?.solana || attempts > 50) {
-                  clearInterval(interval);
-                  resolve(window.okxwallet?.solana);
-                }
-              }, 100);
-            });
-          };
-          
           try {
+            // 初始化 OKX Universal Provider
+            const okxUniversalProvider = await OKXUniversalProvider.init({
+              dappMetaData: {
+                name: "Solana Wallet App",
+                icon: "https://newgame.mypinata.cloud/ipfs/bafkreie4d7r3rzbdlr4chhwsfkhdcu5mgqrrae2h7wg2ya44vmdyj3mthu"
+              },
+            });
+            
+            setOkxProvider(okxUniversalProvider);
+            console.log('OKX Universal Provider initialized');
+            
+            // 等待 OKX 钱包完全加载
+            const waitForOKXWallet = () => {
+              return new Promise((resolve) => {
+                if (window.okxwallet?.solana) {
+                  resolve(window.okxwallet.solana);
+                  return;
+                }
+                
+                let attempts = 0;
+                const interval = setInterval(() => {
+                  attempts++;
+                  if (window.okxwallet?.solana || attempts > 50) {
+                    clearInterval(interval);
+                    resolve(window.okxwallet?.solana);
+                  }
+                }, 100);
+              });
+            };
+            
             const solanaWallet = await waitForOKXWallet();
             if (solanaWallet) {
               console.log('OKX Solana wallet ready');
-              // 这里可以添加自动连接逻辑
             } else {
               console.warn('OKX Solana wallet not found, user may need to switch manually');
             }
+            
           } catch (error) {
-            console.error('Error setting up OKX Solana wallet:', error);
+            console.error('Error initializing OKX Universal Provider:', error);
           }
         }
       }
     };
     
-    forceOKXSolana();
+    initOKXProvider();
   }, []);
   const { login: toLogin } = useLogin({
     onComplete: async ({ user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount }) => {
@@ -127,6 +140,11 @@ export default function Home() {
           <p className="text-xs mt-2">
             如果默认连接了以太坊，请在 OKX 钱包设置中切换到 Solana 网络
           </p>
+          {okxProvider && (
+            <p className="text-xs mt-2 text-green-600">
+              ✅ OKX Universal Provider 已初始化
+            </p>
+          )}
         </div>
       )}
       

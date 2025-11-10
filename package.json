@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@okxconnect/solana-provider": "^1.9.1",
+    "@okxconnect/universal-provider": "^1.9.1",
     "@privy-io/react-auth": "^3.6.1",
     "@solana-program/memo": "^0.10.0",
     "@solana-program/system": "^0.10.0",
