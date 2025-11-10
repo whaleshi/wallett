@@ -16,9 +16,7 @@ export default function PrivyProviders({ children }: { children: React.ReactNode
 					"walletList": [
 						"okx_wallet",
 						"phantom",
-						"binance",
-						"metamask",
-						"detected_wallets",
+						"detected_solana_wallets",
 					]
 				},
 				"loginMethods": ["wallet"],
@@ -29,9 +27,6 @@ export default function PrivyProviders({ children }: { children: React.ReactNode
 				},
 				"embeddedWallets": {
 					"showWalletUIs": false,
-					"ethereum": {
-						"createOnLogin": "off"
-					},
 					"solana": {
 						"createOnLogin": "all-users"
 					}
