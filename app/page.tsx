@@ -5,15 +5,6 @@ import bs58 from 'bs58';
 import { useEffect, useState } from 'react';
 import { useOKXSolana } from '@/hooks/useOKXSolana';
 
-// 声明 OKX 钱包类型
-declare global {
-  interface Window {
-    okxwallet?: {
-      solana?: any;
-      ethereum?: any;
-    };
-  }
-}
 
 export default function Home() {
   const { ready, logout } = usePrivy();
