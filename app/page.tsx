@@ -39,6 +39,9 @@ export default function Home() {
         {isOKXEnvironment && (
           <div className="text-xs text-blue-600">
             🔄 正在强制初始化 OKX Solana 钱包...
+            {/iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+              <div className="text-orange-600 mt-1">🍎 iOS 设备可能需要更长时间初始化</div>
+            )}
             {hasSolanaWallet && <div className="text-green-600">✅ 检测到 Solana 钱包</div>}
           </div>
         )}
@@ -87,6 +90,11 @@ export default function Home() {
           <p className="text-xs mt-2">
             如果默认连接了以太坊，请在 OKX 钱包设置中切换到 Solana 网络
           </p>
+          {typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+            <p className="text-xs mt-2 text-orange-600">
+              🍎 <strong>iOS 用户注意：</strong>首次加载可能需要更长时间，如果一直显示 EVM，请手动切换到 Solana 网络后刷新页面
+            </p>
+          )}
           {okxProvider && (
             <p className="text-xs mt-2 text-green-600">
               ✅ OKX Universal Provider 已初始化
