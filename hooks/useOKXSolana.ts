@@ -30,26 +30,15 @@ export function useOKXSolana() {
         console.log('📱 Platform:', isIOS ? 'iOS' : isAndroid ? 'Android' : 'Unknown');
         console.log('🔄 Has refreshed:', hasAlreadyRefreshed);
         
-        // 如果是 iOS 且没有刷新过，先快速检测一次
+        // 如果是 iOS 且没有刷新过，直接刷新
         if (isIOS && !hasAlreadyRefreshed) {
-          console.log('🍎 iOS 首次加载，快速检测 Solana 钱包...');
-          
-          // 快速检测
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          if (!(window as any).okxwallet?.solana) {
-            console.log('🔄 iOS 未检测到 Solana 钱包，执行无感刷新...');
-            localStorage.setItem(refreshKey, 'true');
-            localStorage.setItem(`${refreshKey}_time`, Date.now().toString());
-            // 清除其他可能的缓存
-            localStorage.removeItem('walletAddress');
-            window.location.reload();
-            return;
-          } else {
-            console.log('✅ iOS 首次检测到 Solana 钱包');
-            // 如果检测到了，清除刷新标记
-            localStorage.removeItem(refreshKey);
-          }
+          console.log('🍎 iOS 首次加载，执行无感刷新强制重新初始化...');
+          localStorage.setItem(refreshKey, 'true');
+          localStorage.setItem(`${refreshKey}_time`, Date.now().toString());
+          // 清除其他可能的缓存
+          localStorage.removeItem('walletAddress');
+          window.location.reload();
+          return;
         }
         
         try {
